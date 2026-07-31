@@ -78,7 +78,6 @@ jobs:
 
       - name: Notify iv-league-pogo that synchronized data is ready
         if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
-        continue-on-error: true
         env:
           IV_LEAGUE_DISPATCH_TOKEN: ${{ secrets.IV_LEAGUE_DISPATCH_TOKEN }}
           SOURCE_COMMIT: ${{ steps.sync.outputs.source_commit }}
@@ -87,8 +86,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$IV_LEAGUE_DISPATCH_TOKEN" ]; then
-            echo "IV_LEAGUE_DISPATCH_TOKEN is not configured; the downstream publisher schedule remains the recovery path."
-            exit 0
+            echo "IV_LEAGUE_DISPATCH_TOKEN is not configured, so the publisher never receives a push notification and" >&2
+            echo "production parity depends solely on the publisher's scheduled cron, which GitHub throttles to ~100min." >&2
+            exit 1
           fi
           jq -n \
             --arg source_commit "$SOURCE_COMMIT" \
