@@ -108,12 +108,27 @@ jobs:
         if: failure()
         env:
           OPS_ALERT_WEBHOOK: ${{ secrets.OPS_ALERT_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          set -euo pipefail
           if [ -z "$OPS_ALERT_WEBHOOK" ]; then
             echo "OPS_ALERT_WEBHOOK is not configured; workflow failure remains visible in GitHub Actions." >&2
             exit 0
           fi
+          # Discord rejects arbitrary JSON with 400/50006; it accepts only content or embeds.
+          case "$OPS_ALERT_WEBHOOK" in
+            https://discord.com/api/webhooks/*|https://discordapp.com/api/webhooks/*)
+              jq -n --arg repo "$GITHUB_REPOSITORY" --arg url "$RUN_URL" \
+                '{username:"PvPoke Parity",embeds:[{title:"PvPoke upstream sync failed",description:("Sync run failed in `"+$repo+"`."),color:15158332,url:$url,fields:[{name:"Run",value:$url}]}]}' \
+                > /tmp/ops-alert.json
+              ;;
+            *)
+              jq -n --arg repo "$GITHUB_REPOSITORY" --arg url "$RUN_URL" \
+                '{event:"pvpoke_upstream_sync_failed",repository:$repo,runUrl:$url}' \
+                > /tmp/ops-alert.json
+              ;;
+          esac
           curl --retry 3 --retry-all-errors --fail-with-body \
             -X POST -H 'Content-Type: application/json' \
-            --data "{\"event\":\"pvpoke_upstream_sync_failed\",\"repository\":\"${{ github.repository }}\",\"runUrl\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            --data-binary @/tmp/ops-alert.json \
             "$OPS_ALERT_WEBHOOK"
