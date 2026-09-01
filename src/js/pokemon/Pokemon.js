@@ -60,7 +60,7 @@ function Pokemon(id, i, b, d){
 	this.levelCap = 50; // Variable level cap as determined by the battle settings
 	this.baseLevelCap = 50; // The default level cap as determined by the game master
 	this.baseLevelFloor = 1; // IV combinations won't go lower than this level
-	this.megaLevel = 0; // Determines mega evolution bonus for third charged attack
+	this.megaLevel = 3; // Determines mega evolution bonus for third charged attack
 	this.cpm = 0.840300023555755;
 	this.priority = 0; // Charged move priority
 	this.fastMovePool = [];
@@ -142,8 +142,8 @@ function Pokemon(id, i, b, d){
 	if(data.tags){
 		this.tags = data.tags.slice();
 
-		if(this.tags.includes("mega")){
-			this.megaLevel = 3; // Default mega level
+		if(this.tags.includes("supermega")){
+			this.megaLevel = 4;
 		}
 	}
 
@@ -2012,6 +2012,11 @@ function Pokemon(id, i, b, d){
 			self.isCustom = true;
 			self.initialize(false);
 		}
+	}
+
+	// Set the Pokemon's Mega Level
+	this.setMegaLevel = function(level){
+		self.megaLevel = level;
 	}
 
 	this.getCPMByLevel = function(level){
